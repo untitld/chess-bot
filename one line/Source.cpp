@@ -25,33 +25,31 @@ int checkPieceMove(int coords, int origCoords, int piece, bool top, bool move);
 bool checkForCheck(bool top);
 int pawnRetake(bool top);
 bool checkForMate(bool top);
+int detBoardVal();
+int neuronActivation(int val);
 
+int gean = 5;
 bool selectPiece = false;
 int choosePiece = 2;
 int pPos;
 int chessboard[8][8];
+const int nodes = 10000;
+int nodeSet[nodes][nodes];
 vector <int> movesList;
 vector <int> movePieces;
 
-bool bot = true;
+bool bot = false;
 
 int main() {
+
+	srand(time(0));
 
 	ofstream dumpData;
 	ifstream takeData;
 
-	srand(time(0));
-
 	int botPieceMove;
 	bool loop = true;
-	const int nodesColumn = 100;
 	vector <int> genome;
-
-	int nodeSet0[nodesColumn];
-	int nodeSet1[nodesColumn];
-	int nodeSet2[nodesColumn];
-	int nodeSet3[nodesColumn];
-	int nodeSet4[nodesColumn];
 
 	initBoard();
 
@@ -110,6 +108,24 @@ int main() {
 						cout << "player 1 turn" << endl;
 					}
 					else {
+						if (bot) {
+							for (int y = 0; y < 8; y++) {
+								for (int x = 0; x < 8; x++) {
+									if (checkPiece(p1, (y * 100 + x)) == 2) {
+										movePieces.push_back(y * 100 + x);
+									}
+								}
+							}
+							choosePiece = movePieces[neuronActivation(detBoardVal()) % movePieces.size()];
+							findMoves(getX(choosePiece), getY(choosePiece), coordToPiece(choosePiece));
+							botPieceMove = movesList[neuronActivation(detBoardVal()) % movesList.size()];
+							if (checkPieceMove(botPieceMove, choosePiece, coordToPiece(choosePiece), p1, true) == 1) {
+								p1 = true;
+							}
+							while (movePieces.size() > 0) {
+								movePieces.pop_back();
+							}
+						}
 						cout << "player 2 turn" << endl;
 					}
 					if (checkForCheck(p1)) {
@@ -188,7 +204,33 @@ int main() {
 	return 0;
 }
 
+int neuronActivation(int val) {
+	srand(gean);
+	int pos = val;
+	for (int i = 0; i < nodes; i++) {
+		pos += rand() % nodes;
+		if (pos > 10000) {
+			pos -= 10000;
+		}
+		if (pos < 0) {
+			pos += 10000;
+		}
+	}
+	return pos;
+}
+
+int detBoardVal() {
+	int boardVal = 1;
+	for (int x = 0; x < 8; x++) {
+		for (int y = 0; y < 8; y++) {
+			boardVal += (chessboard[x][y] * ((x + 1) + (y + 1)));
+		}
+	}
+	return boardVal;
+}
+
 int checkPieceMove(int coords, int origCoords, int piece, bool top, bool move){
+	//return 2 if moving piece results in check, 1 if valid move, 0 if not a valid move
 	int tempPiece;
 	for (int i = 0; i < movesList.size(); i++) {
 		if (coords == movesList[i]) {
@@ -198,6 +240,7 @@ int checkPieceMove(int coords, int origCoords, int piece, bool top, bool move){
 			if (checkForCheck(top)) {
 				chessboard[getY(coords)][getX(coords)] = tempPiece;
 				chessboard[getY(origCoords)][getX(origCoords)] = piece;
+				cout << "returning 2" << endl;
 				return 2;
 			}
 			else {
@@ -251,6 +294,7 @@ int pawnRetake(bool top) {
 
 int checkPiece(bool top, int coords) {
 	if (top) {
+		//return 0 is other players piece, 1 is no moves, 2 is valid piece with moves, 3 is a non piece
 		if (chessboard[getY(coords)][getX(coords)] > 10) {
 			return 0;
 		}
@@ -1291,14 +1335,19 @@ void printBoard() {
 	 for (int y = 0; y < 8; y++) {
 		 for (int x = 0; x < 8; x++) {
 			 if (checkPiece(top, (y * 100 + x)) == 2) {
+				 cout << chessboard[getY(y * 100 + x)][getX(y * 100 + x)] << endl;
 				 movePieces.push_back(y * 100 + x);
+				 //checks every square on board and determines what color they are/whether it can move
 			 }
 		 }
 	 }
 	 for (int y = 0; y < movePieces.size(); y++) {
+		 //iterates playable pieces
 		 findMoves(getX(movePieces[y]), getY(movePieces[y]), coordToPiece(movePieces[y]));
 		 for (int x = 0; x < movesList.size(); x++) {
+			 //iterates moves for the playable piece
 			 if (checkPieceMove(movesList[x], movePieces[y], coordToPiece(movePieces[y]), top, false) == 1) {
+				 //if moving the piece results in a playable board
 				 while (movePieces.size() > 0) {
 					 movePieces.pop_back();
 				 }
